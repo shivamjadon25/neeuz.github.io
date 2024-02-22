@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>News Website</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="logo"><input type="image" src="logo3.png" alt="Submit" width="170px" height="48px"></div>
+      <div class="search">
+        <input type="text" id="searchInput" placeholder="Search for news...">
+        <button id="searchBtn"><i class="fas fa-search"></i></button>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="#" id="trending" class="active">Trending</a></li>
+          <li><a href="#" id="local">India</a></li>
+          <li><a href="#" id="international">International</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <main class="container" id="newsContainer">
+    <!-- News will be dynamically inserted here -->
+  </main>
+  <div class="overlay" id="overlay">
+    <div class="overlay-content" id="overlayContent"></div>
+  </div>
+  <div class="loader" id="loader"></div> <!-- Loading indicator -->
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const trendingBtn = document.getElementById('trending');
+      const localBtn = document.getElementById('local');
+      const internationalBtn = document.getElementById('international');
+      const newsContainer = document.getElementById('newsContainer');
+      const overlay = document.getElementById('overlay');
+      const overlayContent = document.getElementById('overlayContent');
+      const loader = document.getElementById('loader'); // Loading indicator element
+      const searchInput = document.getElementById('searchInput');
+      const searchBtn = document.getElementById('searchBtn');
+
+      trendingBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        setActiveButton(trendingBtn);
+        fetchNews('trending');
+      });
+
+      localBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        setActiveButton(localBtn);
+        fetchNews('india');
+      });
+
+      internationalBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        setActiveButton(internationalBtn);
+        fetchNews('international');
+      });
+
+      searchBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        const searchTerm = searchInput.value.trim();
+        if (searchTerm !== '') {
+          searchNews(searchTerm);
+        }
+      });
+
+      // Search news when Enter key is pressed in the search input
+      searchInput.addEventListener('keypress', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          const searchTerm = searchInput.value.trim();
+          if (searchTerm !== '') {
+            searchNews(searchTerm);
+          }
+        }
+      });
+
+      // Default to trending news
+      fetchNews('trending');
+
+      function fetchNews(category) {
+        // Show loading indicator
+        loader.style.display = 'block';
+
+        // Make API call based on category
+        fetch(`https://api.worldnewsapi.com/search-news?text=${category}&language=en&number=100&source-countries=us,uk,in&sort-direction=ASC&api-key=e7ee76aeaea0493381465e097b1fef36`)
+          .then(response => response.json())
+          .then(data => {
+            displayNews(data.news);
+          })
+          .catch(error => console.error('Error fetching news:', error))
+          .finally(() => {
+            // Hide loading indicator once data is fetched
+            loader.style.display = 'none';
+          });
+      }
+
+      function displayNews(articles) {
+        newsContainer.innerHTML = ''; // Clear previous news
+
+        articles.forEach(article => {
+          const card = document.createElement('div');
+          card.classList.add('card');
+
+          const image = document.createElement('img');
+          image.src = article.image;
+          image.alt = article.title;
+
+          const title = document.createElement('h2');
+          title.textContent = article.title;
+
+          const date = document.createElement('p');
+          date.classList.add('date');
+          date.textContent = formatDate(article.publish_date);
+
+          card.appendChild(image);
+          card.appendChild(title);
+          card.appendChild(date);
+
+          card.addEventListener('click', function () {
+            showOverlay(article);
+          });
+
+          newsContainer.appendChild(card);
+        });
+      }
+
+      function showOverlay(article) {
+        overlayContent.innerHTML = `
+          <div class="overlay-card">
+            <button id="closeOverlay"><i class="fas fa-times"></i></button>
+            <img src="${article.image}" alt="${article.title}">
+            <h2>${article.title}</h2>
+            <p class="date">${formatDate(article.publish_date)}</p>
+            <p class="article-text">${article.text}</p>
+            <a href="${article.url}" target="_blank">Read more</a>
+          </div>
+        `;
+
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling when overlay is open
+
+        const closeOverlayBtn = document.getElementById('closeOverlay');
+        closeOverlayBtn.addEventListener('click', function () {
+          overlay.classList.remove('open');
+          document.body.style.overflow = ''; // Allow scrolling when overlay is closed
+        });
+      }
+
+      function formatDate(dateString) {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('en-US', options);
+      }
+
+      function searchNews(searchTerm) {
+        // Make API call to search for news
+        fetch(`https://api.worldnewsapi.com/search-news?text=${searchTerm}&language=en&number=100&source-countries=us,uk,in&sort-direction=ASC&api-key=e7ee76aeaea0493381465e097b1fef36`)
+          .then(response => response.json())
+          .then(data => {
+            displayNews(data.news);
+          })
+          .catch(error => console.error('Error searching news:', error));
+      }
+      function setActiveButton(button) {
+        const buttons = document.querySelectorAll('nav ul li a');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+      }
+    });
+  </script>
+</body>
+</html>
